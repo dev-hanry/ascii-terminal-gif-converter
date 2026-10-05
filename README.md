@@ -1,12 +1,12 @@
 # ASCII Terminal GIF Converter
 
-> Convert any GIF into terminal-style ASCII animation — preview in-browser, export for real terminal playback.
+> Convert animated GIFs into terminal-style ASCII animations, preview them in the browser, and export them for real terminal playback.
 
-![ASCII Terminal GIF Converter](https://img.shields.io/badge/version-1.0.0-00ff41?style=flat-square&labelColor=000000)
-![Node.js](https://img.shields.io/badge/Node.js-16%2B-00ff41?style=flat-square&labelColor=000000)
-![License](https://img.shields.io/badge/license-MIT-00ff41?style=flat-square&labelColor=000000)
+![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-00ff41?style=flat-square&labelColor=000000)
+![Node.js 16+](https://img.shields.io/badge/Node.js-16%2B-00ff41?style=flat-square&labelColor=000000)
+![License MIT](https://img.shields.io/badge/license-MIT-00ff41?style=flat-square&labelColor=000000)
 
-```
+```text
   ╔═══════════════════════════════════════════╗
   ║   @@@@@  @@@@   @@@@  @  @  @@@@@        ║
   ║   @      @     @      @  @    @          ║
@@ -16,262 +16,292 @@
   ╚═══════════════════════════════════════════╝
 ```
 
-## Overview
+## Project status
 
-**ASCII Terminal GIF Converter** is a full-stack web application that decodes any animated GIF, converts every frame to ASCII art using configurable density mappings, and lets you preview the animation inside a simulated terminal — then export it as a self-contained bash script, plain-text file, or JSON data package.
+**Finished for now — v1.0.0**
 
-Built for developer portfolios and command-line enthusiasts. Every export is immediately runnable in Linux, macOS, or WSL.
+The current feature set is complete for the project's first release. The repository is kept as a finished project and may receive future improvements or fixes.
 
----
+## What it does
 
-## Features
+ASCII Terminal GIF Converter is a full-stack web application that takes an animated GIF, decodes its frames in the browser, converts the frames into configurable ASCII art, and displays the result in a simulated terminal interface.
+
+The converted animation can then be exported as:
+
+- Plain text (`.txt`)
+- Structured JSON (`.json`)
+- A self-contained Bash playback script (`.sh`)
+
+The backend uses Express for upload handling and server-side export preparation. Uploaded files are stored temporarily in session directories and automatically cleaned up after their TTL expires.
+
+## Highlights
 
 | Feature | Description |
 |---|---|
-| **GIF Upload** | Drag-and-drop or browse. Client-side + server-side validation (magic bytes, MIME, size). |
-| **ASCII Conversion** | gifuct-js decodes frames client-side. Configurable density presets, resolution, aspect-ratio correction. |
-| **Terminal Preview** | Phosphor-green terminal UI with CRT effects. requestAnimationFrame renderer. Play / Pause / Restart. |
-| **Render Modes** | Grayscale, Inverted, Colored (HSL-based per-character colorization). |
-| **Density Presets** | Standard, Detailed, Blocks, Simple, Binary, Minimal — or define your own. |
-| **Resolution Scaling** | Low (40), Medium (80), High (120), or Custom column width with automatic aspect-ratio correction. |
-| **FPS Control** | Override or use native GIF frame timing. FPS slider (1–60). |
-| **Loop Modes** | Loop, Once, Bounce. |
-| **Export — TXT** | All frames as a plain-text file with separators. |
-| **Export — JSON** | Structured frame data with metadata. Re-importable. |
-| **Export — Bash** | Self-contained `play_ascii.sh` script. Runs offline. |
-| **Copy Command** | One-click clipboard copy of the terminal play command. |
-| **Server Export** | Server-side export session with stable download links. |
-| **Webcam ASCII** | Live camera feed converted to ASCII in real time (BETA). |
+| **GIF Upload** | Drag-and-drop or file picker with client/server validation, including GIF magic-byte checks and a 15 MB limit. |
+| **Client-side Conversion** | GIF frames are decoded and converted to ASCII in the browser using `gifuct-js`. |
+| **Terminal Preview** | CRT-inspired terminal UI with play, pause, restart, font sizing and animation controls. |
+| **Render Modes** | Grayscale, inverted and colored output. |
+| **ASCII Presets** | Standard, Detailed, Blocks, Simple, Binary and Minimal density mappings. |
+| **Resolution Control** | Low, Medium, High and custom ASCII widths with terminal aspect-ratio correction. |
+| **FPS Control** | Use native GIF timing or override playback speed. |
+| **Loop Modes** | Loop, Once and Bounce. |
+| **TXT Export** | Export all generated frames as plain text. |
+| **JSON Export** | Export frame data and conversion metadata as structured JSON. |
+| **Bash Export** | Generate a self-contained `play_ascii.sh` terminal player. |
+| **Server Export** | Prepare server-side downloadable export files with temporary session URLs. |
+| **Webcam ASCII** | Live webcam-to-ASCII conversion as a beta feature. |
 
----
+## How it works
+
+```text
+             ┌──────────────┐
+             │   GIF File   │
+             └──────┬───────┘
+                    │ upload
+                    ▼
+             ┌──────────────┐
+             │    Express   │
+             │    Backend   │
+             └──────┬───────┘
+                    │ session / source GIF
+                    ▼
+             ┌──────────────┐
+             │    Browser   │
+             │   gifuct-js  │
+             └──────┬───────┘
+                    │ decode + composite + scale
+                    ▼
+             ┌──────────────┐
+             │ ASCII Engine │
+             └──────┬───────┘
+                    │
+             ┌──────┴───────┐
+             ▼              ▼
+      ┌────────────┐  ┌─────────────┐
+      │  Terminal  │  │   Exports   │
+      │  Preview   │  │ TXT/JSON/SH │
+      └────────────┘  └─────────────┘
+```
+
+### Conversion pipeline
+
+1. The browser uploads the selected GIF to the Express backend.
+2. The server validates the file and creates a temporary UUID-based session.
+3. The browser retrieves the GIF and decodes its frames with `gifuct-js`.
+4. GIF frame patches are composited onto a full-frame canvas, including disposal handling.
+5. Each frame is scaled to the selected ASCII width and terminal character aspect ratio.
+6. Pixel brightness is mapped to a selected ASCII density preset.
+7. The renderer plays the generated frames in the terminal-style UI.
+8. Client-side or server-side exporters generate downloadable output.
 
 ## Installation
 
 ### Prerequisites
 
-- **Node.js** ≥ 16.0.0
-- **npm** ≥ 7.0.0
+- **Node.js** 16 or newer
+- **npm** 7 or newer
 
-### Steps
+### Run locally
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yourname/ascii-terminal-gif-converter.git
+git clone https://github.com/dev-hanry/ascii-terminal-gif-converter.git
 cd ascii-terminal-gif-converter
-
-# 2. Install dependencies
 npm install
-
-# 3. Start the server
 npm start
 ```
 
-The application will be available at **http://localhost:3000**.
+Open **http://localhost:3000** in your browser.
 
-For development with auto-restart on file changes:
+For development with automatic server restarts:
 
 ```bash
-npm run dev   # requires nodemon (included in devDependencies)
+npm run dev
 ```
 
----
+### Configuration
 
-## Usage Workflow
+The application currently uses these environment variables:
 
-```
-Upload GIF ──→ Configure Settings ──→ Convert ──→ Preview ──→ Export
-```
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | HTTP server port |
+| `NODE_ENV` | — | Set to `production` to disable development request logging. |
 
-### Step-by-step
+No environment file is required for the default local setup.
 
-1. **Upload a GIF**
-   - Drag and drop a `.gif` file onto the upload zone
-   - Or click "browse files" and select from your filesystem
-   - The GIF is validated client-side (magic bytes, MIME, size limit) and uploaded to the server
+## Usage
 
-2. **Configure Conversion Settings** (right panel)
-   - Choose **Resolution**: Low (40 cols), Medium (80), High (120), or Custom
-   - Choose **Density Preset**: affects which ASCII characters are used
-   - Choose **Render Mode**: Grayscale, Inverted, or Colored
+### 1. Upload a GIF
 
-3. **Convert**
-   - Click **CONVERT GIF** — a progress bar tracks frame-by-frame processing
-   - Frames are decoded and converted entirely in the browser (no server round-trip for conversion)
+Drop a GIF onto the upload area or use the file picker. The server accepts GIF files up to 15 MB and performs MIME, extension and magic-byte validation.
 
-4. **Preview**
-   - The ASCII animation plays automatically in the terminal preview window
-   - Use **PLAY / PAUSE / RESTART** buttons, or keyboard shortcuts:
-     - `Space` — Toggle play/pause
-     - `R` — Restart
+### 2. Configure conversion
 
-5. **Adjust in real time**
-   - Drag the **FPS** slider to speed up/slow down
-   - Drag the **FONT** slider to change character size
-   - Toggle **Override FPS** to ignore native GIF timing
-   - Switch **Loop Mode**: Loop / Once / Bounce
+Choose:
 
-6. **Export**
-   - `TXT` — Download all frames as a plain-text animation file
-   - `JSON` — Download structured JSON frame data
-   - `.SH` — Download a self-contained bash playback script
-   - `Copy CMD` — Copy `chmod +x play_ascii.sh && ./play_ascii.sh` to clipboard
-   - **Prepare Server Export** — Generate stable server-side download links
+- ASCII resolution
+- Density preset
+- Render mode
+- FPS behavior
+- Loop mode
+- Terminal font size
 
----
+### 3. Convert and preview
 
-## Running the Bash Export
+Press **CONVERT GIF** to decode and render the animation. Playback can be controlled with the UI or keyboard shortcuts:
 
-After exporting `play_ascii.sh`:
+- `Space` — play/pause
+- `R` — restart
+
+### 4. Export
+
+Available export formats include:
+
+- **TXT** — plain-text frames
+- **JSON** — frame data plus metadata
+- **SH** — self-contained Bash playback script
+- **Copy CMD** — copies the command used to make the Bash script executable and run it
+- **Server Export** — creates temporary server-side download links
+
+## Bash export
+
+A generated `play_ascii.sh` file can be played directly from a compatible terminal:
 
 ```bash
 chmod +x play_ascii.sh
-./play_ascii.sh               # default speed
-./play_ascii.sh 20            # 20 FPS override
-./play_ascii.sh 15 3          # 15 FPS, loop 3 times then stop
+./play_ascii.sh
+./play_ascii.sh 20
+./play_ascii.sh 15 3
 ```
 
-Compatible with:
-- **Linux** (bash 3.2+)
-- **macOS** (bash 3.2+ or zsh)
-- **WSL** (Windows Subsystem for Linux)
+The generated script is designed for Bash environments such as Linux, macOS and WSL. It uses `bash`, `bc` and `sleep` for playback timing.
 
-Requirements: `bash`, `bc`, `sleep` (all present by default on macOS/Linux/WSL)
+## Project structure
 
----
-
-## Project Structure
-
-```
+```text
 ascii-terminal-gif-converter/
 │
-├── server.js                    # Express entry point, middleware, cleanup job
+├── server.js
 │
 ├── src/
 │   ├── routes/
-│   │   ├── uploadRoutes.js      # POST /api/upload, GET /api/upload/:id/source.gif
-│   │   └── exportRoutes.js      # POST /api/export/prepare, GET /api/export/:id/:file
-│   │
+│   │   ├── uploadRoutes.js
+│   │   └── exportRoutes.js
 │   ├── controllers/
-│   │   ├── uploadController.js  # File validation, session creation, file serving
-│   │   └── exportController.js  # Export generation, download serving
-│   │
+│   │   ├── uploadController.js
+│   │   └── exportController.js
 │   ├── services/
-│   │   └── exportService.js     # TXT, JSON, Bash export content generators
-│   │
+│   │   └── exportService.js
 │   └── utils/
-│       ├── fileUtils.js         # Magic bytes validation, session dir helpers
-│       └── scriptGenerator.js   # Bash script template engine
+│       ├── fileUtils.js
+│       └── scriptGenerator.js
 │
 ├── public/
-│   ├── index.html               # Single-page app shell
+│   ├── index.html
 │   ├── css/
-│   │   └── style.css            # Terminal hacker theme, responsive layout
+│   │   └── style.css
 │   └── js/
-│       ├── app.js               # Main orchestrator (ES module)
-│       ├── converter.js         # GIF decode + ASCII conversion engine
-│       ├── renderer.js          # requestAnimationFrame terminal renderer
-│       ├── uploader.js          # Drag-drop, XHR upload with progress
-│       ├── controls.js          # UI controls binding and state
-│       ├── exporter.js          # Client-side export generators
-│       └── webcam.js            # Live webcam ASCII (BETA)
+│       ├── app.js
+│       ├── controls.js
+│       ├── converter.js
+│       ├── exporter.js
+│       ├── renderer.js
+│       ├── uploader.js
+│       └── webcam.js
 │
-├── uploads/                     # Temporary session storage (auto-cleaned every 30min)
+├── uploads/
+│   └── .gitkeep
 │
+├── BACKEND_DOCS.md
 ├── package.json
 ├── .gitignore
-├── README.md
-└── BACKEND_DOCS.md
+├── LICENSE
+└── README.md
 ```
-
----
 
 ## Dependencies
 
 ### Runtime
 
-| Package | Version | Purpose |
+| Package | Purpose |
+|---|---|
+| `express` | HTTP server, middleware and static frontend serving |
+| `multer` | Multipart GIF upload handling and file-size limits |
+| `cors` | CORS middleware |
+| `uuid` | UUID-based temporary session IDs |
+
+### Frontend CDN
+
+| Library | Purpose |
+|---|---|
+| `gifuct-js` 2.1.2 | Client-side GIF parsing and frame decompression |
+| Google Fonts | JetBrains Mono and Share Tech Mono terminal typography |
+
+### Development
+
+| Package | Purpose |
+|---|---|
+| `nodemon` | Automatic server restart during development |
+
+## API reference
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| `express` | ^4.18.2 | HTTP server and routing |
-| `multer` | ^1.4.5-lts.1 | Multipart file upload handling |
-| `cors` | ^2.8.5 | Cross-Origin Resource Sharing headers |
-| `uuid` | ^9.0.0 | Session ID generation |
-
-### Frontend (CDN)
-
-| Library | Version | Purpose |
-|---|---|---|
-| `gifuct-js` | 2.1.2 | Client-side GIF frame decoding and decompression |
-| Google Fonts | — | JetBrains Mono + Share Tech Mono |
-
-### Dev Dependencies
-
-| Package | Version | Purpose |
-|---|---|---|
-| `nodemon` | ^3.0.1 | Auto-restart server during development |
-
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | HTTP listen port |
-| `NODE_ENV` | — | Set to `production` to disable request logging |
-
----
-
-## API Endpoints
-
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/upload` | Upload a GIF (multipart/form-data, field: `gif`) |
-| `GET` | `/api/upload/:sessionId/source.gif` | Retrieve the uploaded GIF |
-| `DELETE` | `/api/upload/:sessionId` | Delete a session |
-| `POST` | `/api/export/prepare` | Submit ASCII frames, receive download links |
-| `GET` | `/api/export/:exportSessionId/:filename` | Download export file |
+| `POST` | `/api/upload` | Upload and validate a GIF |
+| `GET` | `/api/upload/:sessionId/source.gif` | Retrieve a temporary uploaded GIF |
+| `DELETE` | `/api/upload/:sessionId` | Delete an upload session |
+| `POST` | `/api/export/prepare` | Generate server-side TXT, JSON and Bash exports |
+| `GET` | `/api/export/:exportSessionId/:filename` | Download a generated export |
 | `GET` | `/api/health` | Server health check |
 
----
+For request/response details, module behavior, session lifecycle and backend security notes, see **[BACKEND_DOCS.md](BACKEND_DOCS.md)**.
 
-## Configuration
+## Temporary storage and cleanup
 
-You can tune the following constants directly in the source:
+Uploaded GIFs and server-generated exports are stored under `uploads/` in temporary UUID-based session directories.
 
-| File | Constant | Default | Description |
-|---|---|---|---|
-| `server.js` | `UPLOAD_TTL_MS` | 30 min | Session expiry time |
-| `server.js` | `CLEANUP_INTERVAL_MS` | 10 min | How often cleanup runs |
-| `uploadController.js` | `MAX_FILE_SIZE` | 15 MB | Max upload size |
-| `converter.js` | `CHAR_ASPECT_RATIO` | 0.45 | Height compression for terminal fonts |
-| `converter.js` | `ASCII_PRESETS` | — | Add or modify density presets |
+- Upload sessions expire after approximately 30 minutes.
+- Cleanup runs periodically in the server process.
+- `uploads/` is ignored by Git except for `.gitkeep`.
+- The repository therefore contains no user-uploaded GIFs or generated session artifacts.
 
----
+## Security considerations
 
-## Example ASCII Output
+The backend includes several basic defensive measures:
 
-```
-@@@@@@@@@@@@%%%%####****++++====----::::....    
-@@@@@@@@%%%%####****++++====----::::....        
-@@@@%%%%####****++++====----::::....            
-%%%%####****++++====----::::....    @@@@@@@@@@  
-####****++++====----::::....    @@@@@@@@@@@@@@  
-****++++====----::::....    @@@@@@@@@@@@@@@@@@  
-```
+- GIF MIME-type and extension allow-listing
+- GIF magic-byte validation (`GIF87a` / `GIF89a`)
+- 15 MB upload limit
+- UUID validation for session paths
+- Filename allow-listing for export downloads
+- Temporary session cleanup
+- Frame-count validation for server export requests
 
----
+This is a portfolio project, not a hardened production file-processing service. Additional rate limiting, authentication, resource quotas and stronger isolation would be appropriate before exposing it to untrusted high-volume traffic.
 
-## License
+## Known scope / limitations
 
-MIT — see [LICENSE](LICENSE) for details.
+- There is currently **no hosted demo**.
+- Conversion happens primarily in the browser, so very large or complex GIFs can still consume significant client CPU/memory.
+- Server-side export sessions are temporary.
+- Webcam ASCII mode is still marked **BETA**.
+- The project does not currently include automated tests or a CI workflow.
 
----
+## Documentation
+
+- **[Backend Documentation](BACKEND_DOCS.md)** — architecture, routes, modules, session management, security model and debugging reference.
 
 ## Contributing
 
-Pull requests welcome. For major changes, open an issue first to discuss.
+The current release is considered finished for now. Suggestions, bug reports and pull requests are still welcome.
 
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m 'Add some feature'`)
-4. Push to the branch (`git push origin feature/my-feature`)
-5. Open a Pull Request
+## License
+
+MIT License — see [LICENSE](LICENSE).
+
+Copyright © 2026 **Laxmikant Patidar**.
+
+## Author
+
+**Dev-Hanry** — Laxmikant Patidar
