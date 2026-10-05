@@ -1,36 +1,41 @@
 # Dependencies
 node_modules/
 
-# Uploads (temporary session storage — do not commit)
+# Temporary runtime storage
 uploads/*
 !uploads/.gitkeep
 
-# Environment
+# Environment and secrets
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # OS artifacts
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Editor artifacts
+# Editor / IDE artifacts
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.log
+# Build output
+ dist/
+ build/
 
-# Build output (if added later)
-dist/
-build/
-
-# Test coverage (if added later)
+# Test coverage
 coverage/
+
+# Local tooling / caches
+.npm/
+.cache/
