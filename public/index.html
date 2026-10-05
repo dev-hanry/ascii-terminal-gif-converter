@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCII Terminal GIF Converter</title>
+  <meta name="description" content="Convert any GIF into terminal-style ASCII animation for browser preview and bash export." />
+
+  <!-- JetBrains Mono + Share Tech Mono for terminal aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+
+  <!-- gifuct-js for client-side GIF decoding -->
+  <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.js"></script>
+
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Header                                                       -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-bracket">[</span>
+      <span class="logo-text">ASCII<span class="logo-accent">GIF</span></span>
+      <span class="logo-bracket">]</span>
+    </div>
+    <div class="header-tagline">
+      <span class="blink-cursor">▌</span>
+      <span class="tagline-text">terminal-grade ASCII animation converter</span>
+    </div>
+    <div class="header-meta">
+      <span class="meta-tag">v1.0.0</span>
+      <span class="meta-separator">·</span>
+      <span id="statusIndicator" class="status-dot status-idle" title="System Status"></span>
+      <span id="statusText" class="status-label">IDLE</span>
+    </div>
+  </header>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Upload Zone                                                  -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <section class="upload-section">
+    <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload GIF file">
+      <div class="upload-zone-inner">
+        <div class="upload-icon" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="upload-text">
+          <span class="upload-primary">Drop your GIF here</span>
+          <span class="upload-secondary">or <label for="fileInput" class="upload-link">browse files</label></span>
+        </div>
+        <div class="upload-constraints">
+          <span>GIF only</span>
+          <span class="dot-sep">·</span>
+          <span>Max 15MB</span>
+          <span class="dot-sep">·</span>
+          <span>Animated GIFs preferred</span>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".gif,image/gif" style="display:none" aria-hidden="true" />
+    </div>
+
+    <!-- Upload Progress Bar -->
+    <div class="upload-progress" id="uploadProgress" aria-hidden="true">
+      <div class="progress-label">
+        <span id="uploadProgressLabel">Uploading...</span>
+        <span id="uploadProgressPct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar" id="uploadProgressBar" role="progressbar" style="width:0%"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Main Layout: Preview (left) + Settings (right)              -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <main class="main-layout" id="mainLayout">
+
+    <!-- ── Left: Terminal Preview Panel ── -->
+    <section class="preview-panel" aria-label="ASCII animation preview">
+
+      <!-- Terminal Window Chrome -->
+      <div class="terminal-window" id="terminalWindow">
+        <div class="terminal-titlebar">
+          <div class="terminal-dots">
+            <span class="tdot tdot-red"></span>
+            <span class="tdot tdot-yellow"></span>
+            <span class="tdot tdot-green"></span>
+          </div>
+          <span class="terminal-title" id="terminalTitle">ascii-converter — bash</span>
+          <div class="terminal-frame-counter">
+            <span id="frameCounter">--/--</span>
+          </div>
+        </div>
+
+        <!-- Terminal Body -->
+        <div class="terminal-body" id="terminalBody">
+
+          <!-- Idle / Placeholder State -->
+          <div class="terminal-placeholder" id="terminalPlaceholder">
+            <div class="placeholder-ascii">
+              <pre class="placeholder-art">
+  ┌─────────────────────────────────────────┐
+  │                                         │
+  │      ╔═╗╔═╗╔═╗╦╦   ╔═╗╦╔═╗            │
+  │      ╠═╣╚═╗║  ║║   ║ ╦║╠╣             │
+  │      ╩ ╩╚═╝╚═╝╩╩   ╚═╝╩╚              │
+  │                                         │
+  │      terminal-grade gif converter       │
+  │                                         │
+  │      [ upload a gif to begin ]          │
+  │                                         │
+  └─────────────────────────────────────────┘</pre>
+            </div>
+            <p class="placeholder-hint">Upload a GIF above to start converting →</p>
+          </div>
+
+          <!-- Processing State -->
+          <div class="terminal-processing" id="terminalProcessing" hidden>
+            <div class="processing-lines" id="processingLog"></div>
+            <div class="processing-progress">
+              <div class="progress-track">
+                <div class="progress-bar progress-bar-animated" id="conversionProgressBar" role="progressbar" style="width:0%"></div>
+              </div>
+              <span id="conversionProgressLabel">Processing frames...</span>
+            </div>
+          </div>
+
+          <!-- ASCII Animation Output -->
+          <pre class="terminal-output" id="terminalOutput" hidden aria-live="off" aria-label="ASCII animation frame"></pre>
+
+        </div>
+
+        <!-- CRT Overlay Effects -->
+        <div class="crt-scanlines" aria-hidden="true"></div>
+        <div class="crt-vignette" aria-hidden="true"></div>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="playback-controls" id="playbackControls">
+        <div class="playback-buttons">
+          <button class="ctrl-btn ctrl-btn-primary" id="btnPlay" title="Play (Space)" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>PLAY</span>
+          </button>
+          <button class="ctrl-btn" id="btnPause" title="Pause (Space)" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span>PAUSE</span>
+          </button>
+          <button class="ctrl-btn" id="btnRestart" title="Restart (R)" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.7"/></svg>
+            <span>RESTART</span>
+          </button>
+        </div>
+        <div class="playback-sliders">
+          <label class="slider-label">
+            <span class="slider-name">FPS</span>
+            <input type="range" id="fpsSlider" min="1" max="60" value="12" class="ascii-slider" />
+            <span class="slider-value" id="fpsValue">12</span>
+          </label>
+          <label class="slider-label">
+            <span class="slider-name">FONT</span>
+            <input type="range" id="fontSizeSlider" min="6" max="20" value="10" class="ascii-slider" />
+            <span class="slider-value" id="fontSizeValue">10px</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Right: Settings Panel ── -->
+    <aside class="settings-panel" aria-label="Conversion settings">
+
+      <!-- GIF Info / Preview -->
+      <div class="settings-block" id="gifInfoBlock">
+        <div class="block-header">
+          <span class="block-label">// source</span>
+        </div>
+        <div class="gif-info" id="gifInfo">
+          <span class="info-empty">No file loaded</span>
+        </div>
+        <div class="gif-preview-wrap" id="gifPreviewWrap" hidden>
+          <img id="gifPreviewImg" class="gif-preview" alt="Original GIF preview" />
+        </div>
+      </div>
+
+      <!-- Conversion Settings -->
+      <div class="settings-block">
+        <div class="block-header">
+          <span class="block-label">// conversion</span>
+        </div>
+
+        <!-- Resolution Preset -->
+        <div class="setting-row">
+          <label class="setting-label">Resolution</label>
+          <div class="option-pills" id="resolutionPills" role="group" aria-label="Resolution preset">
+            <button class="pill" data-value="40">Low</button>
+            <button class="pill pill-active" data-value="80">Med</button>
+            <button class="pill" data-value="120">High</button>
+            <button class="pill" data-value="custom">Custom</button>
+          </div>
+        </div>
+        <div class="setting-row" id="customWidthRow" style="display:none">
+          <label class="setting-label" for="customWidth">Width (cols)</label>
+          <input type="number" id="customWidth" class="ascii-input" min="20" max="300" value="100" />
+        </div>
+
+        <!-- Density Preset -->
+        <div class="setting-row">
+          <label class="setting-label" for="densitySelect">Density</label>
+          <select id="densitySelect" class="ascii-select">
+            <option value="standard">Standard  @%#*+=-:. </option>
+            <option value="detailed">Detailed  $@B%8&WM#*</option>
+            <option value="blocks">Blocks    █▓▒░</option>
+            <option value="simple">Simple    #@+= </option>
+            <option value="binary">Binary    0 1</option>
+            <option value="minimal">Minimal   @: </option>
+          </select>
+        </div>
+
+        <!-- Render Mode -->
+        <div class="setting-row">
+          <label class="setting-label">Mode</label>
+          <div class="option-pills" id="modePills" role="group" aria-label="Render mode">
+            <button class="pill pill-active" data-value="grayscale">Gray</button>
+            <button class="pill" data-value="inverted">Invert</button>
+            <button class="pill" data-value="colored">Color</button>
+          </div>
+        </div>
+
+        <!-- Convert Button -->
+        <button class="convert-btn" id="btnConvert" disabled>
+          <span class="convert-btn-text">CONVERT GIF</span>
+          <span class="convert-btn-hint">→ ASCII</span>
+        </button>
+      </div>
+
+      <!-- Live FPS Override -->
+      <div class="settings-block">
+        <div class="block-header">
+          <span class="block-label">// playback</span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">
+            <input type="checkbox" id="fpsOverrideToggle" class="ascii-checkbox" />
+            Override FPS
+          </label>
+          <span class="setting-hint">Unchecked = native GIF timing</span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Loop mode</label>
+          <div class="option-pills" id="loopPills" role="group" aria-label="Loop mode">
+            <button class="pill pill-active" data-value="loop">Loop</button>
+            <button class="pill" data-value="once">Once</button>
+            <button class="pill" data-value="bounce">Bounce</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Webcam Mode -->
+      <div class="settings-block">
+        <div class="block-header">
+          <span class="block-label">// webcam <span class="badge-beta">BETA</span></span>
+        </div>
+        <div class="setting-row webcam-row">
+          <button class="ctrl-btn ctrl-btn-secondary" id="btnWebcam">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 7s2-2 10-2 10 2 10 2v10s-2 2-10 2S2 17 2 17z"/></svg>
+            Start Webcam
+          </button>
+          <button class="ctrl-btn" id="btnWebcamStop" hidden>Stop</button>
+        </div>
+        <div class="webcam-resolution setting-row" id="webcamResRow" hidden>
+          <label class="setting-label">Webcam Width</label>
+          <input type="range" id="webcamWidth" min="30" max="120" value="60" class="ascii-slider" />
+          <span id="webcamWidthVal">60</span>
+        </div>
+        <video id="webcamVideo" autoplay playsinline muted style="display:none" aria-hidden="true"></video>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Export Panel                                                 -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <footer class="export-panel" id="exportPanel">
+    <div class="export-header">
+      <span class="block-label">// export</span>
+      <span class="export-frame-info" id="exportFrameInfo"></span>
+    </div>
+
+    <div class="export-buttons">
+      <button class="export-btn" id="exportTXT" disabled title="Download plain-text animation file">
+        <span class="export-icon">TXT</span>
+        <span class="export-label">Text File</span>
+      </button>
+      <button class="export-btn" id="exportJSON" disabled title="Download JSON frame data">
+        <span class="export-icon">JSON</span>
+        <span class="export-label">JSON Data</span>
+      </button>
+      <button class="export-btn" id="exportSH" disabled title="Download self-contained bash playback script">
+        <span class="export-icon">.SH</span>
+        <span class="export-label">Bash Script</span>
+      </button>
+      <button class="export-btn" id="exportClipboard" disabled title="Copy terminal playback command to clipboard">
+        <span class="export-icon">⌘C</span>
+        <span class="export-label">Copy CMD</span>
+      </button>
+    </div>
+
+    <div class="export-server">
+      <span class="export-server-label">Server-side export:</span>
+      <button class="export-btn-sm" id="exportServerPrepare" disabled>Prepare Server Export</button>
+      <span class="export-server-links" id="exportServerLinks" hidden>
+        <a id="exportServerTXT" href="#" class="server-link">↓ TXT</a>
+        <a id="exportServerJSON" href="#" class="server-link">↓ JSON</a>
+        <a id="exportServerSH" href="#" class="server-link">↓ .SH</a>
+      </span>
+    </div>
+  </footer>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Status Bar                                                   -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <div class="statusbar" id="statusBar" role="status" aria-live="polite">
+    <span class="statusbar-icon" id="statusBarIcon">●</span>
+    <span class="statusbar-text" id="statusBarText">Ready. Upload a GIF to begin.</span>
+    <span class="statusbar-time" id="statusBarTime"></span>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  Error Panel                                                  -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <div class="error-panel" id="errorPanel" role="alert" hidden>
+    <div class="error-panel-inner">
+      <span class="error-icon">⚠</span>
+      <span class="error-message" id="errorMessage"></span>
+      <button class="error-close" id="errorClose" aria-label="Dismiss error">✕</button>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <!--  JavaScript Modules                                           -->
+  <!-- ──────────────────────────────────────────────────────────── -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
