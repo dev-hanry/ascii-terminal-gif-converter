@@ -30,8 +30,8 @@ desktop.ini
 *~
 
 # Build output
- dist/
- build/
+dist/
+build/
 
 # Test coverage
 coverage/
